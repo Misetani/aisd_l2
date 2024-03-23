@@ -22,7 +22,7 @@ all: run clean
 run: $(PROGRAM)
 	@./$(PROGRAM) || true
 
-test: $(TEST_PROGRAM)
+test: clean $(TEST_PROGRAM)
 	@./$(TEST_PROGRAM) || true
 
 $(PROGRAM): $(OBJ)

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <stack>
+#include <queue>
 #include "array_exception.h"
 
 template<typename Key, typename Data>
@@ -19,6 +20,10 @@ private:
 
     Node* root;
     size_t size;
+
+    Node* find_node(const Key& key) const;
+
+    void show(Node* current, int level) const;
 
 public:
     /**
@@ -67,18 +72,36 @@ public:
      * \param key Ключ для поиска.
      * \return Сылка на найденный элемент, если он существует.
      * \post Дерево остаётся неизменным.
-     * \throw std::runtime_error Если элемент с заданным ключом не существует в дереве.
+     * \throw Array_exception если элемент с заданным ключом не существует в дереве.
     */
     Data& operator[](const Key& key);
 
     /**
-     * \brief Поиск элемента с заданным ключом.
+     * \brief Поиск элемента с заданным ключом (константная версия).
      * \param key Ключ для поиска.
-     * \return Ссылка на найденный элемент, если он существует.
+     * \return Константная ссылка на найденный элемент, если он существует.
      * \post Дерево остаётся неизменным.
-     * \throw std::runtime_error Если элемент с заданным ключом не существует в дереве.
+     * \throw Array_exception если элемент с заданным ключом не существует в дереве.
     */
     const Data& operator[](const Key& key) const;
+
+    /**
+     * \brief Поиск элемента с заданным ключом.
+     * \param key Ключ для поиска.
+     * \return Сылка на найденный элемент, если он существует.
+     * \post Дерево остаётся неизменным.
+     * \throw Array_exception если элемент с заданным ключом не существует в дереве.
+    */
+    Data& at(const Key& key);
+
+    /**
+     * \brief Поиск элемента с заданным ключом (константная версия).
+     * \param key Ключ для поиска.
+     * \return Константная ссылка на найденный элемент, если он существует.
+     * \post Дерево остаётся неизменным.
+     * \throw Array_exception если элемент с заданным ключом не существует в дереве.
+    */
+    const Data& at(const Key& key) const;
 
     /**
      * \brief Вставляет данные с заданным ключом в дерево.
@@ -126,20 +149,26 @@ public:
     */
     int print_nodes_visited() const;
 
+    /**
+     * \brief Прямой итератор для обхода дерева бинарного поиска
+    */
     class Iterator {
     private:
-        Node* current;
-        std::stack<Node*> parent_stack;
+        BST<Key, Data>& current_tree;
+        Node* current_node;
 
-        void push_left_children(Node* node);
+        // void push_left_children(Node* node); // ???
 
     public:
-        Iterator(Node* node);
+        Iterator(BST<Key, Data>& tree) {
+            current_tree = tree;
+            current_node = root;
+        }
 
         Data& operator*();
         const Data& operator*() const;
 
-        Iterator& operator++();
+        Iterator& operator++(); 
         Iterator operator++(int);
 
         Iterator& operator--();
@@ -151,11 +180,47 @@ public:
 
     Iterator begin();
     Iterator rbegin();
+
     Iterator end();
     Iterator rend();
 };
 
-template<typename Key, typename Data>
+template <typename Key, typename Data>
+BST<Key, Data>::BST(const BST& other) : BST() {
+    if (other.root == nullptr) {
+        return;
+    }
+
+    // стек с парами (узел, родитель)
+    std::stack<std::pair<Node*, Node*>> nodes_stack;
+    nodes_stack.push(std::make_pair(other.root, nullptr));
+
+    while (!nodes_stack.empty()) {
+        Node* current = nodes_stack.top().first;
+        Node* parent = nodes_stack.top().second;
+        nodes_stack.pop();
+
+        Node *new_node = new Node(current->key, current->data);
+
+        if (parent == nullptr) { // мы на корне второго дерева
+            root = new_node;
+        } else if (current == parent->left) { // мы в левом поддереве
+            parent->left = new_node;
+        } else { // мы в правом поддереве
+            parent->right = new_node;
+        }
+
+        if (current->left != nullptr) {
+            nodes_stack.push(std::make_pair(current->left, new_node));
+        }
+
+        if (current->right != nullptr) {
+            nodes_stack.push(std::make_pair(current->right, new_node));
+        }
+    }
+}
+
+template <typename Key, typename Data>
 bool BST<Key, Data>::insert(const Key& key, const Data& data) {
     if (root == nullptr) { // дерево пустое
         root = new Node(key, data);
@@ -178,7 +243,7 @@ bool BST<Key, Data>::insert(const Key& key, const Data& data) {
 
     Node* new_node = new Node(key, data);
 
-    if (key < parent->key) {
+    if (key < parent->key) { // создаем необходимые связи в дереве с новым узлом
         parent->left = new_node;
     } else {
         parent->right = new_node;
@@ -304,7 +369,7 @@ void BST<Key, Data>::clear() {
 }
 
 template <typename Key, typename Data>
-Data& BST<Key, Data>::operator[](const Key& key) {
+typename BST<Key, Data>::Node* BST<Key, Data>::find_node(const Key& key) const {
     if (root == nullptr) {
         throw Array_exception("BST is empty");
     }
@@ -313,7 +378,7 @@ Data& BST<Key, Data>::operator[](const Key& key) {
 
     while (current != nullptr) { // Поиск узла с заданным ключом
         if (current->key == key) {
-            return current->data;
+            return current;
         } else if (key < current->key) {
             current = current->left;
         } else if (key > current->key) {
@@ -325,15 +390,62 @@ Data& BST<Key, Data>::operator[](const Key& key) {
 }
 
 template <typename Key, typename Data>
+Data& BST<Key, Data>::operator[](const Key& key) {
+    return find_node(key)->data;
+}
+
+template <typename Key, typename Data>
+const Data& BST<Key, Data>::operator[](const Key& key) const {
+    return find_node(key)->data;
+}
+
+template <typename Key, typename Data>
+Data& BST<Key, Data>::at(const Key& key) {
+    return (*this)[key];
+}
+
+template <typename Key, typename Data>
+const Data& BST<Key, Data>::at(const Key& key) const {
+    return (*this)[key];
+}
+
+template <typename Key, typename Data>
+void BST<Key, Data>::show(Node* current, int level) const {
+    if (current == nullptr) {
+        return;
+    }
+
+    show(current->right, level + 1);
+
+    for (int i = 0; i < level; ++i) {
+        std::cout << "  ";
+    }
+
+    std::cout << current->key << " " << current->data << std::endl;
+
+    show(current->left, level + 1);
+}
+
+template <typename Key, typename Data>
 void BST<Key, Data>::print_tree() const {
-    // if (root == nullptr) {
-    //     return;
-    // }
+    if (root == nullptr) {
+        std::cout << "Tree is empty" << std::endl;
+    }
+
+    show(root, 0);
+}
+
+template <typename Key, typename Data>
+std::vector <Key> BST<Key, Data>::get_keys() const {
+    std::vector <Key> keys;
+
+    if (root == nullptr) {
+        return keys;
+    }
 
     std::stack<Node*> parent_stack;
     Node *current = root;
 
-    std::cout << "Tree: ";
     while (!parent_stack.empty() || current != nullptr) {
         if (current != nullptr) {
             parent_stack.push(current);
@@ -341,11 +453,45 @@ void BST<Key, Data>::print_tree() const {
         } else {
             current = parent_stack.top();
             parent_stack.pop();
-            std::cout << current->key << " ";
+            keys.push_back(current->key);
             current = current->right;
         }
     }
-    std::cout << std::endl;
+
+    return keys;
+}
+
+// Внешним  узлом является узел с одним сыном или без сыновей
+// Длина внешнего пути  – сумма уровней всех внешних узлов дерева
+template <typename Key, typename Data>
+size_t BST<Key, Data>::get_external_path_length() const {
+    if (root == nullptr) {
+        return 0;
+    }
+
+    size_t path_length = 0;
+
+    std::stack<std::pair<Node*, size_t>> node_stack;
+    node_stack.push(std::make_pair(root, 0));
+
+    while (!node_stack.empty()) {
+        Node* current = node_stack.top().first;
+        size_t level = node_stack.top().second;
+        node_stack.pop();
+
+        if (current->left == nullptr && current->right == nullptr) {
+            path_length += level;
+        } else {
+            if (current->left != nullptr) {
+                node_stack.push(std::make_pair(current->left, level + 1));
+            }
+            if (current->right != nullptr) {
+                node_stack.push(std::make_pair(current->right, level + 1));
+            }
+        }
+    }
+
+    return path_length;
 }
 
 #endif
