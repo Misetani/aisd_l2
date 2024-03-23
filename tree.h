@@ -154,34 +154,164 @@ public:
     */
     class Iterator {
     private:
-        BST<Key, Data>& current_tree;
-        Node* current_node;
+        BST<Key, Data>& cur_tree;
+        Node* cur_node;
 
-        // void push_left_children(Node* node); // ???
+        /**
+         * \brief Поиск крайнего левого узла дерева (поиск узла с наименьшим ключом)
+        */
+        Node* find_min(Node *node) const {
+            if (node == nullptr) {
+                return nullptr;
+            }
 
-    public:
-        Iterator(BST<Key, Data>& tree) {
-            current_tree = tree;
-            current_node = root;
+            if (node->left == nullptr) {
+                return node;
+            }
+
+            return find_min(node->left);
         }
 
-        Data& operator*();
-        const Data& operator*() const;
+        /**
+         * \brief Поиск крайнего правого узла дерева (поиск узла с наибольшим ключом)
+        */
+        Node* find_max(Node *node) const {
+            if (node == nullptr) {
+                return nullptr;
+            }
 
-        Iterator& operator++(); 
-        Iterator operator++(int);
+            while (node->right != nullptr) {
+                node = node->right;
+            }
 
-        Iterator& operator--();
-        Iterator operator--(int);
+            return node;
+        }
 
-        bool operator==(const Iterator& other) const;
-        bool operator!=(const Iterator& other) const;
+        /**
+         * \brief Поиск узла, узел с заданным ключом для которого является его правым потомком
+        */
+        Node* find_r_parent(Node *node, const Key& key) const {
+            if (node == nullptr) {
+                return nullptr;
+            }
+
+            if (key > node->key) { // искомый предок должен быть в правом поддереве текущего узла
+                Node *r_parent = find_r_parent(node->right, key);
+                if (r_parent != nullptr) { // мы нашли искомого предка в правом поддереве
+                    return r_parent;
+                } else { // в правом поддереве нет искомого предка
+                    return node;
+                }
+            } else { // искомый предок должен быть в левом поддереве текущего узла
+                return find_r_parent(node->left, key);
+            }
+        }
+
+        /**
+         * \brief Поиск узла, узел с заданным ключом для которого является его левым потомком
+        */
+        Node *find_l_parent(Node *node, const Key& key) const {
+            if (node == nullptr) {
+                return nullptr;
+            }
+
+            if (key < node->key) { // искомый предок должен быть в левом поддереве текущего узла
+                Node *l_parent = find_l_parent(node->left, key);
+                if (l_parent != nullptr) { // мы нашли искомого предка в левом поддереве
+                    return l_parent;
+                } else { // в левом поддереве нет искомого предка
+                    return node;
+                }
+            } else { // искомый предок должен быть в правом поддереве текущего узла
+                return find_l_parent(node->right, key);
+            }
+        }
+
+        /**
+         * \brief Поиск предыдущего узла дерева (поиск узла с наибольшим ключом меньше текущего)
+        */
+        Node* find_predecessor(Node *node) const {
+            if (node->left != nullptr) {
+                return find_max(node->left); // максимальный ключ в левом поддереве
+            } else {
+                return find_r_parent(cur_tree.root, node->key); // узел для которого текущий узел является правым потомком
+            }
+        }
+
+        Node* find_successor(Node *node) const {
+            if (node->right!= nullptr) {
+                return find_min(node->right); // минимальный ключ в правом поддереве
+            } else {
+                return find_l_parent(cur_tree.root, node->key); // узел для которого текущий узел является левым потомком
+            }
+        }
+
+    public:
+        Iterator(BST<Key, Data>& tree) : cur_tree(tree), cur_node(find_min(tree.root)) {}
+
+        Iterator(BST<Key, Data>& tree, Node* node) : cur_tree(tree), cur_node(node) {}
+
+        Data& operator*() {
+            if (cur_node == nullptr) {
+                throw Array_exception("Iterator is not initialized");
+            }
+
+            return cur_node->data;
+        }
+
+        const Data& operator*() const {
+            if (cur_node == nullptr) {
+                throw Array_exception("Iterator is not initialized");
+            }
+
+            return cur_node->data;
+        }
+
+        /**
+         * \brief Переход к следующему элементу в дереве.
+        */
+        Iterator& operator++() {
+            if (cur_node == nullptr) {
+                throw Array_exception("Cannot move past end of the tree");
+            }
+
+            cur_node = find_successor(cur_node);
+
+            return *this;
+        }
+
+        /**
+         * \brief Переход к предыдущему элементу в дереве.
+        */
+        Iterator& operator--() {
+            if (cur_node == nullptr) {
+                throw Array_exception("Cannot move past beginning of the tree");
+            }
+
+            cur_node = find_predecessor(cur_node);
+
+            return *this;
+        }
+
+        bool operator==(const Iterator& other) const {
+            return cur_node == other.cur_node;
+        }
+
+        bool operator!=(const Iterator& other) const {
+            return cur_node != other.cur_node;
+        }
     };
 
-    Iterator begin();
+    Iterator begin() {
+        return Iterator(*this);
+    }
+
     Iterator rbegin();
 
-    Iterator end();
+    Iterator end() {
+        return Iterator(*this, nullptr);
+    }
+
     Iterator rend();
 };
 

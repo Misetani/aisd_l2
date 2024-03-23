@@ -236,7 +236,7 @@ TEST (BST, get_keys_test2) {
     EXPECT_EQ(keys[4], 5);
 }
 
-TEST(BST, get_external_path_length_test) {
+TEST (BST, get_external_path_length_test) {
     BST<int, int> tree;
     tree.insert(5, 5);
     tree.insert(8, 8);
@@ -249,6 +249,112 @@ TEST(BST, get_external_path_length_test) {
     tree.insert(1, 1);
 
     EXPECT_EQ(tree.get_external_path_length(), 10);
+}
+
+TEST (BST, iterator_test1) {
+    BST<int, int> tree;
+    tree.insert(5, 5);
+    tree.insert(8, 8);
+    tree.insert(3, 3);
+    tree.insert(6, 6);
+    tree.insert(7, 7);
+    tree.insert(9, 9);
+    tree.insert(4, 4);
+    tree.insert(2, 2);
+    tree.insert(1, 1);
+
+    BST<int, int>::Iterator it = tree.begin();
+    EXPECT_EQ(*it, 1);
+}
+
+TEST (BST, iterator_test2) {
+    BST<int, int> tree;
+    BST<int, int>::Iterator it = tree.begin();
+    EXPECT_THROW(*it, Array_exception);
+}
+
+TEST (BST, iterator_test3) {
+    BST<int, int> tree;
+    tree.insert(5, 5);
+    tree.insert(8, 8);
+    tree.insert(3, 3);
+    tree.insert(6, 6);
+    tree.insert(7, 7);
+    tree.insert(9, 9);
+    tree.insert(4, 4);
+    tree.insert(2, 2);
+    tree.insert(1, 1);
+
+    BST<int, int>::Iterator it = tree.begin();
+
+    for (int i = 1; i < 10; i++) {
+        EXPECT_EQ(*it, i);
+        ++it;
+    }
+
+    EXPECT_THROW(++it, Array_exception);
+    EXPECT_THROW(*it, Array_exception);
+    EXPECT_THROW(--it, Array_exception);
+
+    EXPECT_EQ(it, tree.end());
+}
+
+TEST (BST, iterator_test4) {
+    BST<int, int> tree;
+    tree.insert(5, 5);
+    tree.insert(8, 8);
+    tree.insert(3, 3);
+    tree.insert(6, 6);
+    tree.insert(7, 7);
+    tree.insert(9, 9);
+    tree.insert(4, 4);
+    tree.insert(2, 2);
+    tree.insert(1, 1);
+
+    BST<int, int>::Iterator it = tree.begin();
+
+    while (it != tree.end()) {
+        EXPECT_GE(*it, 1);
+        EXPECT_LE(*it, 9);
+        ++it;
+    }
+
+    EXPECT_EQ(it, tree.end());
+}
+
+TEST (BST, iterator_test5) {
+    BST<int, int> tree;
+    tree.insert(5, 5);
+    tree.insert(8, 8);
+    tree.insert(3, 3);
+    tree.insert(6, 6);
+    tree.insert(7, 7);
+    tree.insert(9, 9);
+    tree.insert(4, 4);
+    tree.insert(2, 2);
+    tree.insert(1, 1);
+
+    BST<int, int>::Iterator it = tree.begin();
+
+    for (int i = 1; i < 10; i++) {
+        EXPECT_EQ(*it, i);
+        if (i != 9) {
+            ++it;
+        }
+    }
+
+    EXPECT_EQ(*it, 9);
+
+    for (int i = 9; i > 0; --i) {
+        EXPECT_EQ(*it, i);
+
+        if (i != 1) {
+            --it;
+        }
+    }
+
+    EXPECT_EQ(*it, 1);
+    EXPECT_EQ(it, tree.begin());
 }
 
 int main(int argc, char **argv) {
